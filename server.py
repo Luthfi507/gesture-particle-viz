@@ -230,12 +230,13 @@ def create_app(count: int = 50000, tracker_factory=None) -> web.Application:
     app[TRACKER] = tracker_factory
     app.router.add_get("/", index)
     app.router.add_get("/ws", socket)
+    app.router.add_static("/static/", STATIC)
     return app
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=5173)
     parser.add_argument("--count", type=int, default=50000)
     args = parser.parse_args()
