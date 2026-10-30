@@ -12,7 +12,7 @@ DWELL = 0.35
 
 class Flow:
     def __init__(self, models: dict):
-        self.models = models   # name -> Model yang sudah dibangun, dipakai bersama antar sesi
+        self.models = models
         self.names = list(self.models.keys())
         self.index = 0
         self.state = IDLE

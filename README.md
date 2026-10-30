@@ -96,4 +96,3 @@ point-to-pick, pinch-to-pull, explode, heartbeat, part labels, mouse drag/click,
 
 Not ported: the other 27 models, quiz mode, voice commands, cut-away, video recording, demo mode,
 gesture sensitivity setting, and the Playwright suite.
-q

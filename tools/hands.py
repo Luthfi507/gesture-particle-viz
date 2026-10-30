@@ -5,6 +5,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+
 from utils import Hand
 
 MODEL_URL = (
@@ -24,11 +28,6 @@ def ensure_model(path: Path = MODEL_PATH) -> Path:
 
 class HandTracker:
     def __init__(self, max_hands: int = 2):
-        import mediapipe as mp
-        from mediapipe.tasks import python
-        from mediapipe.tasks.python import vision
-
-        self.mp = mp
         options = vision.HandLandmarkerOptions(
             base_options=python.BaseOptions(model_asset_path=str(ensure_model())),
             running_mode=vision.RunningMode.VIDEO,
@@ -41,7 +40,7 @@ class HandTracker:
 
     def detect(self, frame_bgr: np.ndarray) -> list:
         rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        mp_image = self.mp.Image(image_format=self.mp.ImageFormat.SRGB, data=rgb)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
         stamp = max(int(time.monotonic() * 1000), self.last_ms + 1)
         self.last_ms = stamp

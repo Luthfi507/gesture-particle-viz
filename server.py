@@ -12,19 +12,18 @@ from aiohttp import WSMsgType, web
 
 from engines import CAM, FOCAL, ParticleEngine, project
 from models import MODELS
-from tools import FORMED, Flow, GestureController, Intent
+from tools import FORMED, Flow, GestureController, Intent, HandTracker
 
 COUNT = web.AppKey("count", int)
 MODELS_CACHE = web.AppKey("models", dict)
-TRACKER = web.AppKey("tracker_factory", object)
 
 STATIC = Path(__file__).resolve().parent / "static"
 
 FPS = 30
-QUANT = 32767 / 4.0          # posisi dikirim sebagai int16 dalam rentang -4..4
+QUANT = 32767 / 4.0
 MSG_MODEL = 1
 MSG_FRAME = 2
-STALE_VISION = 0.5           # detik tanpa frame kamera sebelum tangan dianggap hilang
+STALE_VISION = 0.5
 
 
 def build_models(count: int) -> dict:
@@ -37,11 +36,10 @@ def model_message(index: int, model) -> bytes:
 
 
 class Session:
-    def __init__(self, ws, models: dict, count: int, tracker_factory):
+    def __init__(self, ws: web.WebSocketResponse, models: dict, count: int):
         self.ws = ws
         self.count = count
-        self.tracker_factory = tracker_factory
-        self.tracker = None
+        self.tracker_factory = HandTracker()
 
         self.flow = Flow(models)
         self.engine = ParticleEngine(count)
@@ -86,7 +84,6 @@ class Session:
             pass
 
     def push_intent(self, new: Intent):
-        # event sesaat (snap, ganti pose) tidak boleh hilang kalau dua frame kamera datang sebelum satu tick
         if self.fresh:
             new.snap = new.snap or self.intent.snap
             if self.intent.pose == new.pose:
@@ -112,15 +109,14 @@ class Session:
 
     def detect(self, data: bytes):
         img = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
-        return None if img is None else self.tracker.detect(img)
+        return self.tracker_factory.detect(img)
 
     async def vision_loop(self):
         loop = asyncio.get_running_loop()
-        self.tracker = await loop.run_in_executor(None, self.tracker_factory)
         while True:
             await self.frame_ready.wait()
             self.frame_ready.clear()
-            data, self.latest = self.latest, None   # hanya frame terbaru, yang lama dibuang
+            data, self.latest = self.latest, None
             if data is None:
                 continue
             hands = await loop.run_in_executor(None, self.detect, data)
@@ -214,20 +210,14 @@ async def socket(request):
     if count not in cache:
         cache[count] = await asyncio.get_running_loop().run_in_executor(None, build_models, count)
 
-    await Session(ws, cache[count], count, request.app[TRACKER]).run()
+    await Session(ws, cache[count], count).run()
     return ws
 
 
-def create_app(count: int = 50000, tracker_factory=None) -> web.Application:
-    if tracker_factory is None:
-        from tools.hands import HandTracker
-
-        tracker_factory = HandTracker
-
+def create_app(count: int = 50000) -> web.Application:
     app = web.Application()
     app[COUNT] = count
     app[MODELS_CACHE] = {}
-    app[TRACKER] = tracker_factory
     app.router.add_get("/", index)
     app.router.add_get("/ws", socket)
     app.router.add_static("/static/", STATIC)
