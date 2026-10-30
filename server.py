@@ -11,7 +11,7 @@ import numpy as np
 from aiohttp import WSMsgType, web
 
 from engines import CAM, FOCAL, ParticleEngine, project
-from models import MODELS
+from models import MODELS, register_all_models
 from tools import FORMED, Flow, GestureController, Intent, HandTracker
 
 COUNT = web.AppKey("count", int)
@@ -25,7 +25,7 @@ MSG_MODEL = 1
 MSG_FRAME = 2
 STALE_VISION = 0.5
 
-
+register_all_models()
 def build_models(count: int) -> dict:
     return {name: build(count) for name, build in MODELS.items()}
 
