@@ -1,7 +1,7 @@
 import numpy as np
 
 from .base import Part, assemble
-from .shapes import box, cylinder, segment, sphere, tube
+from .shapes import sphere_compat as sphere, box, cylinder, segment, tube
 
 TAU = 2 * np.pi
 
